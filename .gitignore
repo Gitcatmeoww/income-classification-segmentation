@@ -1,3 +1,4 @@
 .DS_Store
+.venv/
 data_raw/
 req/ML-TakehomeProject.pdf
