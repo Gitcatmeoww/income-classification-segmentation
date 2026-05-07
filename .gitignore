@@ -2,3 +2,6 @@
 .venv/
 data_raw/
 req/ML-TakehomeProject.pdf
+.claude/
+CLAUDE.md
+plans/
