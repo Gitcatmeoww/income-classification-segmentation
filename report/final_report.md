@@ -4,13 +4,11 @@
 
 - [Executive Summary](#1-executive-summary)
 - [Recommended Marketing Use](#2-recommended-marketing-use)
-- [Modeling Implementation Overview](#3-modeling-implementation-overview)
-- [Key Assumptions](#4-key-assumptions)
-- [Data Exploration and Preprocessing](#5-data-exploration-and-preprocessing)
-- [Income Differentiation: Classification](#6-income-differentiation-classification)
-- [Customer Segmentation](#7-customer-segmentation)
-- [Limitations and Follow-Ups](#8-limitations-and-follow-ups)
-- [Suggestions for This Project](#9-suggestions-for-this-project)
+- [Deliverables, Methodology, Reliability, and Assumptions](#3-deliverables-methodology-reliability-and-assumptions)
+- [Data Exploration and Preprocessing](#4-data-exploration-and-preprocessing)
+- [Income Differentiation: Classification](#5-income-differentiation-classification)
+- [Customer Segmentation](#6-customer-segmentation)
+- [Limitations and Suggestions for This Project](#7-limitations-and-suggestions-for-this-project)
 
 ## 1. Executive Summary
 
@@ -21,7 +19,7 @@ This project aims to give the retail marketing team two tools:
 
 The score helps decide **which audiences to prioritize for high-income-oriented campaigns**. The segments help marketing understand **who those audiences are, where the opportunity sits, and how messaging should differ by group**.
 
-For campaign execution, use the score to choose the reach/precision trade-off: smaller top-score bands for high-cost or premium campaigns, and broader top 10%-20% bands when the goal is wider high-income coverage. The strongest marketing play is to combine both outputs: use segments for message strategy, then use the score within each segment to control who gets contacted (More details are provided in the [next section](#2-recommended-marketing-use)).
+**Recommendation for Marketing Campaign**: Use the score to choose the reach/precision trade-off: smaller top-score bands for high-cost or premium campaigns, and broader top 10%-20% bands when the goal is wider high-income coverage. The strongest marketing play is to combine both outputs: use segments for message strategy, then use the score within each segment to control who gets contacted (More details are provided in the [next section](#2-recommended-marketing-use)).
 
 ## 2. Recommended Marketing Use
 
@@ -61,7 +59,7 @@ The table below gives common score-band choices so marketing can compare audienc
 | Steady Workers × top 5% score          | 2.82% of adults |       82.86% | Best scalable premium audience.               |
 | Steady Workers × top 10% score         | 5.66% of adults |       66.67% | Broader digital or loyalty audience.          |
 
-## 3. Modeling Implementation Overview
+## 3. Deliverables, Methodology, Reliability, and Assumptions
 
 ### 3.1 What We Delivered
 
@@ -112,7 +110,7 @@ Reliability is measured in three ways: held-out test performance for the classif
 
 The segmentation was stable under three checks: subsample refit ARI **0.9997**, sensitive-attribute inclusion ARI **0.9884**, and expanded-feature ARI **0.9463**. In plain terms, the same broad segments reappeared even when the clustering inputs were stressed.
 
-## 4. Key Assumptions
+### 3.4 Key Assumptions
 
 The recommendations depend on a few assumptions we have:
 
@@ -126,11 +124,11 @@ The recommendations depend on a few assumptions we have:
 
 ---
 
-## 5. Data Exploration and Preprocessing
+## 4. Data Exploration and Preprocessing
 
 > _Detailed analysis: `notebooks/01_eda.ipynb`._
 
-### 5.1 Dataset at a Glance
+### 4.1 Dataset at a Glance
 
 The dataset contains **199,523 individual records** from the Census Bureau's 1994-95 Current Population Survey extract. Each person has survey attributes covering income, education, work, household role, demographics, migration fields, and a sample weight.
 
@@ -140,7 +138,7 @@ Weighted up to the represented population, the file covers about **347 million p
 
 The target is rare, but the weighted and unweighted rates are close. That is useful: the sample imbalance reflects the represented population rather than a sampling accident. It also means the modeling work should focus on ranking, lift, and top-band precision rather than raw accuracy.
 
-### 5.2 What Separates High-Income Records
+### 4.2 What Separates High-Income Records
 
 The clearest single-variable signals come from education, occupation, full-year work, and investment-income fields. These findings guided the feature engineering used later in classification and segmentation.
 
@@ -165,7 +163,7 @@ The clearest single-variable signals come from education, occupation, full-year 
 
 Demographics and household context have signal too. Married-civilian-spouse-present, householder, male, and joint tax filer all have above-baseline high-income rates. These are weaker than the education/work/financial signals, but they help the model distinguish otherwise similar records.
 
-### 5.3 Data Quality Findings & Decisions
+### 4.3 Data Quality Findings & Decisions
 
 The main data quality findings and modeling treatments were:
 
@@ -178,13 +176,13 @@ The main data quality findings and modeling treatments were:
 
 ---
 
-## 6. Income Differentiation: Classification
+## 5. Income Differentiation: Classification
 
 > _Detailed analysis: `notebooks/02_classification.ipynb`._
 
 The classification notebook turns the EDA findings into a ranked high-income propensity model. It compares common classifier families, selects a final model on validation data, checks stability with cross-validation, and evaluates the selected model once on a held-out test set. For marketing, the main output is not a yes/no label. It is a ranked list that can be cut into top 5%, 10%, or 20% audiences depending on campaign strategy.
 
-### 6.1 What the Classifier Produces
+### 5.1 What the Classifier Produces
 
 The classifier produces a **high-income propensity score** for each record. A higher score means the person should be prioritized earlier **when the campaign goal is to reach high-income prospects**. The score is not meant to be a permanent yes/no label; it is a ranking that marketing can cut at different depths depending on the campaign.
 
@@ -199,7 +197,7 @@ This is more useful than a fixed label because the right cutoff changes by campa
 
 ![Weighted test lift by top scored share](../outputs/figures/classification_test_lift.png)
 
-### 6.2 Recommended Score Bands
+### 5.2 Recommended Score Bands
 
 Score bands should be chosen by balancing precision, reach, and campaign economics. The model bundle saves validation-derived score thresholds for common bands so marketing can apply the same ranking logic consistently.
 
@@ -231,7 +229,7 @@ In this example, both the top 5% and the incremental 5%-20% band clear break-eve
 
 For a live campaign, the same table should be recalculated with the real contact cost, expected value, conversion goal, and audience-size constraint.
 
-### 6.3 Model Selection and Comparison
+### 5.3 Model Selection and Comparison
 
 Five common model families were benchmarked on the validation set. The goal was to pick a strong, reproducible ranking model, not to optimize every model family exhaustively.
 
@@ -249,7 +247,7 @@ LightGBM, XGBoost, and HistGradientBoosting are separated by only **0.0022 valid
 
 ![Validation ROC and precision-recall curves across candidate classifiers](../outputs/figures/classification_roc_precision_recall_curves.png)
 
-### 6.4 Validation Strategy
+### 5.4 Validation Strategy
 
 The modeling workflow used:
 
@@ -275,7 +273,7 @@ The decision not to tune hyperparameters was deliberate. The project goal is mar
 
 The Brier score should also be read carefully. With a rare target, low Brier scores can partly come from many near-zero predictions. For this use case, lift and top-band precision matter more than perfect probability calibration. If future users want to treat model scores as literal probabilities in ROI formulas, the next step should be a reliability diagram and calibration step.
 
-### 6.5 Final Model Performance
+### 5.5 Final Model Performance
 
 After selection and stability checks, the selected HistGradientBoosting model was evaluated once on the held-out test set.
 
@@ -288,9 +286,9 @@ After selection and stability checks, the selected HistGradientBoosting model wa
 
 The test PR-AUC is modestly lower than validation, which is expected. The ranking remains strong: the weighted top 20% of test records captures about **91%** of weighted high-income records.
 
-### 6.6 Classifier Pipeline and Final Feature Set
+### 5.6 Classifier Pipeline and Final Feature Set
 
-This section is classifier-specific. [Section 5](#5-data-exploration-and-preprocessing) explains the general data cleaning decisions; here, the focus is how those decisions became an executable model pipeline.
+This section is classifier-specific. [Section 4](#4-data-exploration-and-preprocessing) explains the general data cleaning decisions; here, the focus is how those decisions became an executable model pipeline.
 
 | Step                       | Decision                                                                                                  |
 | -------------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -314,7 +312,7 @@ After feature ablation, seven low-value or redundant columns were removed:
 
 The final classifier bundle uses **30 features** and excludes the four migration artifact columns before fitting.
 
-### 6.7 Governance Notes
+### 5.7 Governance Notes
 
 The technical classifier includes `sex`, `race`, `hispanic origin`, and `citizenship`. A sensitivity check removed those fields and refit the selected model family. Validation PR-AUC fell by **0.0168**, from about 0.6898 to **0.6730**.
 
@@ -324,7 +322,7 @@ That means the sensitive attributes carry some signal, but they are not the sole
 - If the fields are not appropriate, remove them and accept the measured performance loss.
 - Do not use this model for credit, insurance, employment, housing, or other regulated decisions without a separate compliance process.
 
-### 6.8 Saved Classifier Artifact
+### 5.8 Saved Classifier Artifact
 
 The notebook saves the reusable classifier bundle to:
 
@@ -334,13 +332,13 @@ The bundle includes the fitted model, feature list, categorical mappings, prepro
 
 ---
 
-## 7. Customer Segmentation
+## 6. Customer Segmentation
 
 > _Detailed analysis: `notebooks/03_segmentation.ipynb`._
 
 The segmentation notebook groups adults into interpretable audiences using work, household, education, and financial-profile fields. Income is not used to create the clusters; it is measured afterward. That keeps segmentation useful for understanding the audience, while the classifier remains responsible for prioritizing who to contact first inside each segment.
 
-### 7.1 What the Segmentation Produces
+### 6.1 What the Segmentation Produces
 
 The segmentation notebook assigns adult records (`age >= 18`) to four customer segments:
 
@@ -369,7 +367,7 @@ The t-SNE plot below is only a diagnostic view. It helps show that the clusters 
 
 ![t-SNE sample colored by segment and income overlay](../outputs/figures/segmentation_tsne_clusters.png)
 
-### 7.2 Segment × Score Recipes
+### 6.2 Segment × Score Recipes
 
 Segments alone are not enough. The strongest strategy is **segment × score band**:
 
@@ -386,7 +384,7 @@ Segments alone are not enough. The strongest strategy is **segment × score band
 
 This split keeps the two jobs separate. The segment tells the marketer how to understand and message the audience. The score determines how deep into the segment the campaign should go.
 
-### 7.3 Segment Interpretation
+### 6.3 Segment Interpretation
 
 **Steady Workers** is the largest segment and contains most high-income adults because it is so large. It is not a premium segment by itself: its high-income rate is 11.30%, above the adult baseline but far below the top score bands. This segment should usually be score-filtered. A follow-up sub-segmentation found a smaller professional/dividend-income pocket inside it: **13.04%** of the parent segment and **33.76%** above $50,000.
 
@@ -396,7 +394,7 @@ This split keeps the two jobs separate. The segment tells the marketer how to un
 
 **Low-Workforce Adults** is large but low-income by this target definition. It should not be the main audience for high-income acquisition, though it may still matter for value, convenience, leisure, or household campaigns.
 
-### 7.4 Segmentation Model Details
+### 6.4 Segmentation Model Details
 
 The final segmentation model is **K-Means with K = 4**, fit on adults only. The adult universe contains **143,531 records**, representing about **253.5 million weighted person-records**.
 
@@ -438,7 +436,7 @@ Stability checks were strong:
 
 The expanded-feature test increased the encoded space from **58** to **281** columns but did not materially change the broad segmentation. That supports the simpler default feature set: it is easier to explain and preserves the main structure.
 
-### 7.5 Saved Segmentation Artifact
+### 6.5 Saved Segmentation Artifact
 
 The notebook saves the segmentation bundle to:
 
@@ -448,7 +446,7 @@ The bundle includes the fitted clustering model, preprocessing pipeline, project
 
 ---
 
-## 8. Limitations and Follow-Ups
+## 7. Limitations and Suggestions for This Project
 
 **Data must be refreshed before deployment.** The data covers 1994-95. The broad relationships are useful for this exercise, but actual score thresholds, income prevalence, occupation patterns, and audience sizes should be retrained on current data before deployment.
 
@@ -464,11 +462,7 @@ The bundle includes the fitted clustering model, preprocessing pipeline, project
 
 **Segment names are shorthand.** Segment names summarize dominant patterns in the survey data. They should be treated as working labels, not fixed personas. Current customer data and campaign creative should validate the naming before launch.
 
----
-
-## 9. Suggestions for This Project
-
-The brief describes a generic retail client. In a real engagement, the recommendation would become sharper with a few business inputs. For example:
+**Business inputs would make the recommendation more operational.** The brief describes a generic retail client. In a real engagement, the recommendation would become sharper with a few business inputs. For example:
 
 1. What product, service, or offer will the campaign promote?
 2. What is the expected value of a successful conversion?

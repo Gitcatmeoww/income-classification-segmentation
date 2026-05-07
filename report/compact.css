@@ -1,0 +1,154 @@
+:root {
+  --ink: #111827;
+  --muted: #4b5563;
+  --rule: #d7dee8;
+  --soft: #f3f6f8;
+  --accent: #245f73;
+  --accent-soft: #e7f0f2;
+}
+
+@page {
+  size: Letter;
+  margin: 0.44in 0.46in;
+}
+
+body {
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  line-height: 1.28;
+  max-width: none;
+}
+
+h1 {
+  color: var(--accent);
+  font-size: 21px;
+  letter-spacing: 0;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--accent);
+}
+
+h2 {
+  color: var(--accent);
+  font-size: 15px;
+  letter-spacing: 0;
+  margin: 13px 0 6px;
+  padding-top: 3px;
+  border-top: 1px solid var(--rule);
+  break-after: avoid;
+}
+
+h3 {
+  color: #1f2937;
+  font-size: 12.4px;
+  letter-spacing: 0;
+  margin: 9px 0 4px;
+  break-after: avoid;
+}
+
+h4 {
+  font-size: 11.4px;
+  margin: 8px 0 4px;
+  break-after: avoid;
+}
+
+p,
+ul,
+ol,
+table,
+blockquote {
+  margin-top: 3px;
+  margin-bottom: 5px;
+}
+
+ul,
+ol {
+  padding-left: 18px;
+}
+
+li {
+  margin: 1px 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+strong {
+  color: #111827;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.7px;
+  line-height: 1.2;
+  break-inside: avoid;
+}
+
+th,
+td {
+  padding: 3.2px 5px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+th {
+  background: var(--accent-soft);
+  color: #173b46;
+  font-weight: 700;
+}
+
+tr:nth-child(even) td {
+  background: #fafbfc;
+}
+
+img {
+  display: block;
+  max-width: 96%;
+  max-height: 1.88in;
+  margin: 5px auto 7px;
+  object-fit: contain;
+  break-inside: avoid;
+}
+
+blockquote {
+  background: var(--soft);
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+  padding: 5px 8px;
+  break-inside: avoid;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 10px 0;
+}
+
+code {
+  background: #f3f4f6;
+  border-radius: 2px;
+  color: #1f2937;
+  font-size: 9px;
+  padding: 0 2px;
+}
+
+@media print {
+  body > h2:first-of-type,
+  body > h2:first-of-type + ol {
+    display: none;
+  }
+
+  h2 {
+    break-before: auto;
+  }
+
+  p,
+  li {
+    orphans: 2;
+    widows: 2;
+  }
+}

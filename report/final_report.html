@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>final_report</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="compact.css" />
+</head>
+<body>
+<h1 id="retail-income-targeting-and-customer-segmentation">Retail Income
+Targeting and Customer Segmentation</h1>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#1-executive-summary">Executive Summary</a></li>
+<li><a href="#2-recommended-marketing-use">Recommended Marketing
+Use</a></li>
+<li><a
+href="#3-deliverables-methodology-reliability-and-assumptions">Deliverables,
+Methodology, Reliability, and Assumptions</a></li>
+<li><a href="#4-data-exploration-and-preprocessing">Data Exploration and
+Preprocessing</a></li>
+<li><a href="#5-income-differentiation-classification">Income
+Differentiation: Classification</a></li>
+<li><a href="#6-customer-segmentation">Customer Segmentation</a></li>
+<li><a
+href="#7-limitations-and-suggestions-for-this-project">Limitations and
+Suggestions for This Project</a></li>
+</ul>
+<h2 id="executive-summary">1. Executive Summary</h2>
+<p>This project aims to give the retail marketing team two tools:</p>
+<ol type="1">
+<li>A <strong>ranked income score</strong> that estimates how likely
+each prospect is to earn more than $50,000. This is a ranking tool, not
+a fixed yes/no label.</li>
+<li>An <strong>adult customer segmentation</strong> that groups similar
+audiences for campaign planning. The segmentation is adult-only because
+work, income, and household-role patterns are not comparable for
+children.</li>
+</ol>
+<p>The score helps decide <strong>which audiences to prioritize for
+high-income-oriented campaigns</strong>. The segments help marketing
+understand <strong>who those audiences are, where the opportunity sits,
+and how messaging should differ by group</strong>.</p>
+<p><strong>Recommendation for Marketing Campaign</strong>: Use the score
+to choose the reach/precision trade-off: smaller top-score bands for
+high-cost or premium campaigns, and broader top 10%-20% bands when the
+goal is wider high-income coverage. The strongest marketing play is to
+combine both outputs: use segments for message strategy, then use the
+score within each segment to control who gets contacted (More details
+are provided in the <a href="#2-recommended-marketing-use">next
+section</a>).</p>
+<h2 id="recommended-marketing-use">2. Recommended Marketing Use</h2>
+<p><strong>The classification model.</strong> Different campaign types,
+budgets, and channel costs call for different reach strategies. The
+score curve is meant to help marketing choose that trade-off:</p>
+<ul>
+<li><strong>Precision-oriented targeting:</strong> when contact cost is
+high or the campaign needs the highest-confidence audience, use the blue
+line to choose a smaller top band. For example, the top 5% has about
+<strong>70%</strong> above $50,000 on the weighted test set.</li>
+<li><strong>Coverage-oriented targeting:</strong> when the campaign
+needs broader reach, use the orange line to understand how much of the
+high-income population is captured. For example, the top 20% captures
+about <strong>90%</strong> of the weighted high-income population while
+still running at <strong>4.5x</strong> lift.</li>
+</ul>
+<figure>
+<img src="../outputs/figures/classification_reach_tradeoff.png"
+alt="Reach trade-off on weighted test set" />
+<figcaption aria-hidden="true">Reach trade-off on weighted test
+set</figcaption>
+</figure>
+<p>The table below gives common score-band choices so marketing can
+compare audience size, precision, and captured opportunity side by
+side.</p>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 13%" />
+<col style="width: 20%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr>
+<th>Score-ranked audience</th>
+<th style="text-align: right;">% above $50K</th>
+<th style="text-align: right;">Lift vs. population</th>
+<th style="text-align: right;">% of weighted &gt;$50K population
+captured</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top 1%</td>
+<td style="text-align: right;">96.40%</td>
+<td style="text-align: right;">15.10x</td>
+<td style="text-align: right;">15.51%</td>
+</tr>
+<tr>
+<td>Top 5%</td>
+<td style="text-align: right;">69.89%</td>
+<td style="text-align: right;">10.95x</td>
+<td style="text-align: right;">54.83%</td>
+</tr>
+<tr>
+<td>Top 10%</td>
+<td style="text-align: right;">47.48%</td>
+<td style="text-align: right;">7.44x</td>
+<td style="text-align: right;">74.91%</td>
+</tr>
+<tr>
+<td>Top 20%</td>
+<td style="text-align: right;">28.68%</td>
+<td style="text-align: right;">4.49x</td>
+<td style="text-align: right;">90.61%</td>
+</tr>
+<tr>
+<td>Top 30%</td>
+<td style="text-align: right;">20.23%</td>
+<td style="text-align: right;">3.17x</td>
+<td style="text-align: right;">95.84%</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><em>Note: Lift compares the high-income rate in a selected score band
+with the overall weighted high-income rate:
+<code>lift = score-band high-income rate / overall weighted high-income rate</code>.
+For example, top 5% lift of 10.95x means the top-scored 5% is about
+10.95 times as concentrated with &gt;$50K individuals as the overall
+population.</em></p>
+</blockquote>
+<p><strong>The segments.</strong> Use the segmentation for
+<strong>message planning</strong>, and use the classifier score for
+<strong>audience prioritization inside each segment</strong>. In
+practice, marketing can first choose the segment that fits the campaign
+message, then choose the score band that fits the budget and contact
+strategy.</p>
+<ul>
+<li><strong>Investor Professionals</strong>: best starting point for
+premium or investment-oriented messaging because it is the most
+income-dense segment.</li>
+<li><strong>Steady Workers</strong>: the largest scalable audience; use
+the classifier score to find the strongest high-income pockets within
+it.</li>
+<li><strong>Service &amp; Admin</strong>: smaller segment where
+high-income prospects are less common, so score filtering is especially
+important.</li>
+<li><strong>Low-Workforce Adults</strong>: better suited for value,
+convenience, or non-income-led campaigns than for high-income
+targeting.</li>
+</ul>
+<p><strong>Classification + Segmentation.</strong> The most actionable
+use is to combine both tools: pick a segment for message fit, then apply
+the score cutoff for reach control.</p>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 13%" />
+<col style="width: 10%" />
+<col style="width: 40%" />
+</colgroup>
+<thead>
+<tr>
+<th>Recommended audience</th>
+<th style="text-align: right;">Weighted reach</th>
+<th style="text-align: right;">% above $50K</th>
+<th>Suggested use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Investor Professionals × top 5% score</td>
+<td style="text-align: right;">0.26% of adults</td>
+<td style="text-align: right;">99.19%</td>
+<td>Small, highest-confidence premium audience.</td>
+</tr>
+<tr>
+<td>Investor Professionals × top 20% score</td>
+<td style="text-align: right;">1.03% of adults</td>
+<td style="text-align: right;">96.61%</td>
+<td>Premium audience with slightly broader reach.</td>
+</tr>
+<tr>
+<td>Steady Workers × top 5% score</td>
+<td style="text-align: right;">2.82% of adults</td>
+<td style="text-align: right;">82.86%</td>
+<td>Best scalable premium audience.</td>
+</tr>
+<tr>
+<td>Steady Workers × top 10% score</td>
+<td style="text-align: right;">5.66% of adults</td>
+<td style="text-align: right;">66.67%</td>
+<td>Broader digital or loyalty audience.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="deliverables-methodology-reliability-and-assumptions">3.
+Deliverables, Methodology, Reliability, and Assumptions</h2>
+<h3 id="what-we-delivered">3.1 What We Delivered</h3>
+<p>This analysis produces two connected outputs:</p>
+<ol type="1">
+<li><p>A <strong>classification model</strong> that estimates each
+person’s likelihood of earning more than $50,000 using demographic,
+employment, household, and financial variables recorded in
+1994-95.</p></li>
+<li><p>A <strong>segmentation model</strong> that groups adults into
+four interpretable audiences for campaign planning. These segments are
+chosen for structure and actionability, not just for income
+separation.</p></li>
+</ol>
+<table>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 10%" />
+<col style="width: 12%" />
+<col style="width: 60%" />
+</colgroup>
+<thead>
+<tr>
+<th>Segment</th>
+<th style="text-align: right;">Weighted size</th>
+<th style="text-align: right;">In-segment &gt;$50K</th>
+<th>Primary cluster profile</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Steady Workers</td>
+<td style="text-align: right;">56.32%</td>
+<td style="text-align: right;">11.30%</td>
+<td>Broad full-year working base with steady labor-force
+attachment.</td>
+</tr>
+<tr>
+<td>Low-Workforce Adults</td>
+<td style="text-align: right;">31.18%</td>
+<td style="text-align: right;">1.24%</td>
+<td>Lower weeks worked, lower employer count, and limited
+financial-income signals.</td>
+</tr>
+<tr>
+<td>Service &amp; Admin</td>
+<td style="text-align: right;">7.47%</td>
+<td style="text-align: right;">4.52%</td>
+<td>Service/admin occupational mix with weaker investment-income
+signals.</td>
+</tr>
+<tr>
+<td>Investor Professionals</td>
+<td style="text-align: right;">5.03%</td>
+<td style="text-align: right;">33.47%</td>
+<td>Professional profile with stronger capital-gain and dividend
+signals.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="how-we-produced-it">3.2 How We Produced It</h3>
+<p><strong>The classification model.</strong></p>
+<ul>
+<li><strong>Training:</strong> We trained five common classifier
+families: <code>Logistic Regression</code>, <code>Random Forest</code>,
+<code>HistGradientBoosting</code>, <code>XGBoost</code>, and
+<code>LightGBM</code>.</li>
+<li><strong>Validation:</strong> We used the validation set to choose
+the model family and feature set. PR-AUC was the primary selection
+metric because the target is rare and the business problem is ranked
+targeting. Weighted metrics and top-band lift were used as business
+checks. Sample weights were used for validation/test reporting and
+audience sizing, not for model training.</li>
+<li><strong>Decision:</strong> The selected model is
+<strong>HistGradientBoosting</strong>. LightGBM had the highest
+validation PR-AUC, but the gap was only <strong>0.0022</strong> versus
+HistGradientBoosting. We chose HistGradientBoosting because it was
+simpler to reproduce, stayed inside scikit-learn, and the marginal
+PR-AUC gain was not business-material.</li>
+</ul>
+<p><strong>The segments.</strong></p>
+<ul>
+<li><strong>Universe:</strong> We built segmentation on adults only.
+Children and minors were excluded because their income, work, and
+household-role patterns are structurally different from adult
+customers.</li>
+<li><strong>Features:</strong> We used work, education, household, and
+financial-profile fields. Income was measured after clustering rather
+than used to form the clusters.</li>
+<li><strong>Preprocessing:</strong> Numerical features were
+standardized, and categorical features were one-hot encoded.</li>
+<li><strong>Dimensionality reduction:</strong> The resulting 58-column
+sparse matrix was reduced to 20 dimensions with TruncatedSVD before
+clustering. This makes K-Means distance comparisons more stable in a
+sparse feature space.</li>
+<li><strong>Decision:</strong> The final segmentation uses
+<strong>K-Means with K = 4</strong>. K=4 was selected because it
+produced interpretable, deployable segments, met the 5% minimum
+weighted-size activation floor, and had the best deployable structural
+score among the candidate models.</li>
+</ul>
+<h3 id="how-reliable-it-is">3.3 How Reliable It Is</h3>
+<p>Reliability is measured in three ways: held-out test performance for
+the classifier, weighted and unweighted metrics to compare sample-level
+and population-level results, and stability checks for both the final
+classifier and segmentation.</p>
+<p><strong>Held-out test performance on weighted and unweighted
+metrics.</strong> On the held-out test set, the final classifier
+achieved:</p>
+<table>
+<colgroup>
+<col style="width: 8%" />
+<col style="width: 11%" />
+<col style="width: 10%" />
+<col style="width: 69%" />
+</colgroup>
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align: right;">Unweighted test</th>
+<th style="text-align: right;">Weighted test</th>
+<th>Business reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PR-AUC</td>
+<td style="text-align: right;">0.6738</td>
+<td style="text-align: right;">0.6791</td>
+<td>Strong ranking performance for a rare target.</td>
+</tr>
+<tr>
+<td>ROC-AUC</td>
+<td style="text-align: right;">0.9516</td>
+<td style="text-align: right;">0.9510</td>
+<td>Strong separation between high- and lower-income records.</td>
+</tr>
+<tr>
+<td>Brier score</td>
+<td style="text-align: right;">0.0325</td>
+<td style="text-align: right;">0.0332</td>
+<td>Scores are directionally useful, but not treated as perfectly
+calibrated probabilities.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><em>Note: Unweighted metrics describe performance on the sample rows.
+Weighted metrics estimate performance for the represented population
+using Census sample weights.</em></p>
+</blockquote>
+<p><strong>Stability checks.</strong> The classifier was also checked
+with 5-fold cross-validation on the training split. The top-10% weighted
+precision was stable at <strong>47.33% +/- 0.94 percentage
+points</strong>, and top-10% lift was <strong>7.41x +/-
+0.12x</strong>.</p>
+<p>The segmentation was stable under three checks: subsample refit ARI
+<strong>0.9997</strong>, sensitive-attribute inclusion ARI
+<strong>0.9884</strong>, and expanded-feature ARI
+<strong>0.9463</strong>. In plain terms, the same broad segments
+reappeared even when the clustering inputs were stressed.</p>
+<h3 id="key-assumptions">3.4 Key Assumptions</h3>
+<p>The recommendations depend on a few assumptions we have:</p>
+<ul>
+<li><a id="a1-ranking-score"></a><strong>A1: Ranking is more useful than
+a binary label.</strong> Marketing teams usually need to choose how deep
+into an audience to go based on budget, channel cost, and expected
+return. A score supports top 5%, 10%, or 20% targeting; a fixed label
+hides that flexibility.</li>
+<li><a id="a2-adult-segmentation"></a><strong>A2: Segmentation should
+focus on adults.</strong> Children and minors have structurally
+different income, work, and household-role patterns. Including them in
+customer segmentation would create groups that are less useful for adult
+retail campaign planning.</li>
+<li><a id="a3-high-income-targeting"></a><strong>A3: The primary use
+case is high-income-oriented targeting.</strong> The score is designed
+to prioritize likely high-income prospects. If the business wants a
+lower-income, value-oriented, or mass-market audience, it should use
+lower score bands.</li>
+<li><a id="a4-sensitive-attributes"></a><strong>A4: Sensitive attributes
+need a production decision.</strong> The technical classifier includes
+sensitive demographic fields such as sex, race, hispanic origin, and
+citizenship. Before deployment, the client should decide whether these
+fields are allowed and appropriate for the campaign, then audit the
+selected audience.</li>
+<li><a id="a5-data-vintage"></a><strong>A5: The data vintage limits
+direct deployment.</strong> The model is trained on 1994-95 survey data.
+The patterns are useful for this project, but current deployment would
+require retraining on current customer or market data.</li>
+<li><a id="a6-segment-actionability"></a><strong>A6: Segments are chosen
+for actionability, not pure income separation.</strong> Income is
+measured after clustering. That keeps the segments useful for audience
+understanding and message planning instead of forcing every segment to
+be an income bucket.</li>
+<li><a id="a7-sample-weights"></a><strong>A7: Sample weights are used
+for evaluation and sizing, not training.</strong> The model is trained
+on raw sample rows for stability. Census sample weights are used when
+reporting population-level metrics, audience size, and lift.</li>
+</ul>
+<hr />
+<h2 id="data-exploration-and-preprocessing">4. Data Exploration and
+Preprocessing</h2>
+<blockquote>
+<p><em>Detailed analysis: <code>notebooks/01_eda.ipynb</code>.</em></p>
+</blockquote>
+<h3 id="dataset-at-a-glance">4.1 Dataset at a Glance</h3>
+<p>The dataset contains <strong>199,523 individual records</strong> from
+the Census Bureau’s 1994-95 Current Population Survey extract. Each
+person has survey attributes covering income, education, work, household
+role, demographics, migration fields, and a sample weight.</p>
+<p>Weighted up to the represented population, the file covers about
+<strong>347 million person-records</strong> across the two survey years.
+About <strong>22.2 million</strong> of those weighted person-records, or
+<strong>6.4%</strong>, are above the $50,000 income threshold.</p>
+<figure>
+<img src="../outputs/figures/target_distribution.png"
+alt="Target distribution: raw records vs. weighted population" />
+<figcaption aria-hidden="true">Target distribution: raw records
+vs. weighted population</figcaption>
+</figure>
+<p>The target is rare, but the weighted and unweighted rates are close.
+That is useful: the sample imbalance reflects the represented population
+rather than a sampling accident. It also means the modeling work should
+focus on ranking, lift, and top-band precision rather than raw
+accuracy.</p>
+<h3 id="what-separates-high-income-records">4.2 What Separates
+High-Income Records</h3>
+<p>The clearest single-variable signals come from education, occupation,
+full-year work, and investment-income fields. These findings guided the
+feature engineering used later in classification and segmentation.</p>
+<table>
+<colgroup>
+<col style="width: 45%" />
+<col style="width: 54%" />
+</colgroup>
+<thead>
+<tr>
+<th>EDA insight</th>
+<th>Modeling implication</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Education has a strong gradient across degree levels.</td>
+<td>Keep granular education and allow grouped degree features in simpler
+models.</td>
+</tr>
+<tr>
+<td>Occupation and worker class identify labor-market position.</td>
+<td>Retain broad occupation and worker-class fields for both
+classification and segmentation.</td>
+</tr>
+<tr>
+<td>Capital gains, dividends, and capital losses are strong financial
+signals.</td>
+<td>Add flags/log transforms and preserve the capital-gain top-code
+indicator.</td>
+</tr>
+<tr>
+<td>Full-year work is strongly related to high-income status.</td>
+<td>Use weeks worked and work-status fields as core labor-attachment
+features.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Education is a broad signal.</strong> The high-income rate
+rises steadily with attainment: about <strong>20%</strong> for
+bachelor’s degrees, <strong>31%</strong> for master’s degrees,
+<strong>52%</strong> for doctorates, and <strong>54%</strong> for
+professional degrees. Bachelor’s-or-above as a group has a
+<strong>25.7%</strong> high-income rate, compared with
+<strong>2.8%</strong> for everyone else.</p>
+<p><strong>Occupation and worker class add labor-market
+context.</strong> Executive/managerial roles are <strong>28.8%</strong>
+high-income, and professional specialty roles are
+<strong>24.9%</strong>. Self-employed incorporated workers are
+<strong>34.7%</strong> high-income, compared with <strong>12.9%</strong>
+for self-employed workers who are not incorporated.</p>
+<figure>
+<img src="../outputs/figures/top4_categorical_income_rate.png"
+alt="Top categorical relationships with income" />
+<figcaption aria-hidden="true">Top categorical relationships with
+income</figcaption>
+</figure>
+<p><strong>Financial fields are especially powerful.</strong> Any
+reported capital gains moves the high-income rate from
+<strong>5.2%</strong> to <strong>32.7%</strong>. Dividends move it from
+<strong>4.0%</strong> to <strong>25.1%</strong>. Capital losses show a
+similar pattern. The strongest flag is the survey top-code for capital
+gains: among records at the $99,999 reporting cap,
+<strong>88.2%</strong> are above $50,000.</p>
+<p><strong>Full-year work helps distinguish stable earning
+capacity.</strong> People who worked all 52 weeks are high-income at
+<strong>14.8%</strong>, compared with <strong>1.5%</strong> for people
+who worked fewer weeks. The high-income group is not just more educated;
+it is also more likely to be fully attached to the labor force.</p>
+<figure>
+<img src="../outputs/figures/numeric_threshold_flags.png"
+alt="Numeric threshold features and high-income separation" />
+<figcaption aria-hidden="true">Numeric threshold features and
+high-income separation</figcaption>
+</figure>
+<p>Demographics and household context have signal too.
+Married-civilian-spouse-present, householder, male, and joint tax filer
+all have above-baseline high-income rates. These are weaker than the
+education/work/financial signals, but they help the model distinguish
+otherwise similar records.</p>
+<h3 id="data-quality-findings-decisions">4.3 Data Quality Findings &amp;
+Decisions</h3>
+<p>The main data quality findings and modeling treatments were:</p>
+<table>
+<colgroup>
+<col style="width: 35%" />
+<col style="width: 34%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr>
+<th>Pattern found in EDA</th>
+<th>Why it matters</th>
+<th>Treatment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Many categorical columns contain
+<code>"Not in universe"</code>.</td>
+<td>This usually means the survey question did not apply, not that the
+value is missing.</td>
+<td>Keep it as its own category.</td>
+</tr>
+<tr>
+<td>Four migration fields are empty for 1995 and populated for
+1994.</td>
+<td>They encode survey-year structure more than migration behavior.</td>
+<td>Drop them before modeling.</td>
+</tr>
+<tr>
+<td>Some country-of-birth fields use <code>?</code>;
+<code>hispanic origin</code> has small “Do not know” groups.</td>
+<td>These are unknown responses, not values we can safely infer.</td>
+<td>Collapse to <code>"Unknown"</code>.</td>
+</tr>
+<tr>
+<td>Several fields have detailed and broad versions.</td>
+<td>Keeping both can add redundancy.</td>
+<td>Test them through feature ablation and expanded-feature sensitivity
+checks.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="income-differentiation-classification">5. Income
+Differentiation: Classification</h2>
+<blockquote>
+<p><em>Detailed analysis:
+<code>notebooks/02_classification.ipynb</code>.</em></p>
+</blockquote>
+<p>The classification notebook turns the EDA findings into a ranked
+high-income propensity model. It compares common classifier families,
+selects a final model on validation data, checks stability with
+cross-validation, and evaluates the selected model once on a held-out
+test set. For marketing, the main output is not a yes/no label. It is a
+ranked list that can be cut into top 5%, 10%, or 20% audiences depending
+on campaign strategy.</p>
+<h3 id="what-the-classifier-produces">5.1 What the Classifier
+Produces</h3>
+<p>The classifier produces a <strong>high-income propensity
+score</strong> for each record. A higher score means the person should
+be prioritized earlier <strong>when the campaign goal is to reach
+high-income prospects</strong>. The score is not meant to be a permanent
+yes/no label; it is a ranking that marketing can cut at different depths
+depending on the campaign.</p>
+<p>The recommended workflow is:</p>
+<ol type="1">
+<li>Score the eligible audience.</li>
+<li>Sort from highest to lowest high-income propensity.</li>
+<li>Choose a top band based on the campaign’s precision-vs.-coverage
+need.</li>
+<li>Track response by score band so future thresholds can use real
+campaign results.</li>
+</ol>
+<p>This is more useful than a fixed label because the right cutoff
+changes by campaign. A high-touch campaign may only want the top 5%,
+where precision is highest. A broader campaign may use the top 10%-20%,
+where more of the high-income population is captured.</p>
+<figure>
+<img src="../outputs/figures/classification_test_lift.png"
+alt="Weighted test lift by top scored share" />
+<figcaption aria-hidden="true">Weighted test lift by top scored
+share</figcaption>
+</figure>
+<h3 id="recommended-score-bands">5.2 Recommended Score Bands</h3>
+<p>Score bands should be chosen by balancing precision, reach, and
+campaign economics. The model bundle saves validation-derived score
+thresholds for common bands so marketing can apply the same ranking
+logic consistently.</p>
+<p>The net-value calculation is:</p>
+<p><code>expected net value per contact = band precision x expected value per contacted high-income prospect - contact cost</code></p>
+<p>A score band clears break-even when:</p>
+<p><code>band precision &gt;= contact cost / expected value per contacted high-income prospect</code></p>
+<p>The notebook uses a simple example to show the calculation:</p>
+<ul>
+<li>Cost per contact: <strong>$5</strong></li>
+<li>Expected value per contacted high-income prospect:
+<strong>$200</strong></li>
+<li>Break-even precision: <strong>2.5%</strong></li>
+</ul>
+<p>The final validation-derived bands saved in the model bundle are:</p>
+<table>
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 14%" />
+<col style="width: 22%" />
+<col style="width: 20%" />
+<col style="width: 28%" />
+</colgroup>
+<thead>
+<tr>
+<th>Band</th>
+<th style="text-align: right;">Minimum score</th>
+<th style="text-align: right;">Validation precision</th>
+<th style="text-align: right;">Lift vs. base rate</th>
+<th style="text-align: right;">Example net value/contact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top 5%</td>
+<td style="text-align: right;">0.3998</td>
+<td style="text-align: right;">70.41%</td>
+<td style="text-align: right;">10.86x</td>
+<td style="text-align: right;">$135.82</td>
+</tr>
+<tr>
+<td>Top 5%-20%</td>
+<td style="text-align: right;">0.0461</td>
+<td style="text-align: right;">15.75%</td>
+<td style="text-align: right;">2.43x</td>
+<td style="text-align: right;">$26.49</td>
+</tr>
+<tr>
+<td>Top 20%-100%</td>
+<td style="text-align: right;">0.0000</td>
+<td style="text-align: right;">0.60%</td>
+<td style="text-align: right;">0.09x</td>
+<td style="text-align: right;">-$3.81</td>
+</tr>
+</tbody>
+</table>
+<figure>
+<img src="../outputs/figures/classification_campaign_economics.png"
+alt="Campaign economics by validation score band" />
+<figcaption aria-hidden="true">Campaign economics by validation score
+band</figcaption>
+</figure>
+<p>In this example, both the top 5% and the incremental 5%-20% band
+clear break-even. That makes <strong>top 20% by score</strong> a
+reasonable starting band when the campaign wants broad high-income
+coverage, with a validation minimum score of <strong>0.0461</strong>.
+The <strong>top 5%</strong> remains the better operating choice when the
+campaign is expensive, capacity-limited, or focused on the
+highest-confidence audience.</p>
+<p>For a live campaign, the same table should be recalculated with the
+real contact cost, expected value, conversion goal, and audience-size
+constraint.</p>
+<h3 id="model-selection-and-comparison">5.3 Model Selection and
+Comparison</h3>
+<p>Five common model families were benchmarked on the validation set.
+The goal was to pick a strong, reproducible ranking model, not to
+optimize every model family exhaustively.</p>
+<table>
+<colgroup>
+<col style="width: 18%" />
+<col style="width: 33%" />
+<col style="width: 15%" />
+<col style="width: 13%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr>
+<th>Model</th>
+<th>Feature encoding</th>
+<th style="text-align: right;">Validation PR-AUC</th>
+<th style="text-align: right;">Weighted PR-AUC</th>
+<th style="text-align: right;">ROC-AUC</th>
+<th style="text-align: right;">Brier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LightGBM</td>
+<td>Native categorical</td>
+<td style="text-align: right;"><strong>0.6883</strong></td>
+<td style="text-align: right;">0.6978</td>
+<td style="text-align: right;"><strong>0.9566</strong></td>
+<td style="text-align: right;"><strong>0.0318</strong></td>
+</tr>
+<tr>
+<td>XGBoost</td>
+<td>Native categorical</td>
+<td style="text-align: right;">0.6874</td>
+<td style="text-align: right;"><strong>0.6983</strong></td>
+<td style="text-align: right;">0.9563</td>
+<td style="text-align: right;">0.0319</td>
+</tr>
+<tr>
+<td>HistGradientBoosting</td>
+<td>Ordinal categorical</td>
+<td style="text-align: right;">0.6861</td>
+<td style="text-align: right;">0.6962</td>
+<td style="text-align: right;">0.9558</td>
+<td style="text-align: right;">0.0319</td>
+</tr>
+<tr>
+<td>Logistic Regression</td>
+<td>One-hot / engineered linear features</td>
+<td style="text-align: right;">0.6496</td>
+<td style="text-align: right;">0.6597</td>
+<td style="text-align: right;">0.9516</td>
+<td style="text-align: right;">0.0339</td>
+</tr>
+<tr>
+<td>Random Forest</td>
+<td>One-hot</td>
+<td style="text-align: right;">0.6344</td>
+<td style="text-align: right;">0.6448</td>
+<td style="text-align: right;">0.9499</td>
+<td style="text-align: right;">0.0368</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><em>Note: Feature encoding describes how the model received
+categorical fields. One-hot encoding turns each category into binary
+indicator columns. Ordinal categorical encoding maps categories to
+integer codes inside the pipeline. Native categorical means the model
+library handles categorical splits directly.</em></p>
+</blockquote>
+<p>LightGBM, XGBoost, and HistGradientBoosting are separated by only
+<strong>0.0022 validation PR-AUC</strong>. All three beat Logistic
+Regression and Random Forest by a clear margin. Given that near-tie,
+<strong>HistGradientBoosting</strong> was selected because it is simpler
+to reproduce and close enough that the difference is not
+business-material.</p>
+<figure>
+<img
+src="../outputs/figures/classification_roc_precision_recall_curves.png"
+alt="Validation ROC and precision-recall curves across candidate classifiers" />
+<figcaption aria-hidden="true">Validation ROC and precision-recall
+curves across candidate classifiers</figcaption>
+</figure>
+<h3 id="validation-strategy">5.4 Validation Strategy</h3>
+<p>The modeling workflow used:</p>
+<ul>
+<li>A fixed <strong>60 / 20 / 20 train / validation / test
+split</strong>.</li>
+<li>The validation set for model-family selection, feature ablation, and
+threshold planning.</li>
+<li>A final untouched test set for the reported holdout
+performance.</li>
+<li>A <strong>5-fold stratified cross-validation check on the training
+split</strong> for the selected feature set.</li>
+<li>No grid search, random search, or CV-based hyperparameter
+tuning.</li>
+</ul>
+<p>PR-AUC was the primary model-selection metric because the target is
+rare and the business use case is ranked targeting. The cross-validation
+check was added after model selection to confirm stability, not to tune
+hyperparameters.</p>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 5%" />
+<col style="width: 8%" />
+<col style="width: 62%" />
+</colgroup>
+<thead>
+<tr>
+<th>CV metric</th>
+<th style="text-align: right;">Mean</th>
+<th style="text-align: right;">Std. dev.</th>
+<th>Reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PR-AUC</td>
+<td style="text-align: right;">0.6665</td>
+<td style="text-align: right;">0.0134</td>
+<td>Ranking quality is stable across folds.</td>
+</tr>
+<tr>
+<td>Weighted PR-AUC</td>
+<td style="text-align: right;">0.6713</td>
+<td style="text-align: right;">0.0129</td>
+<td>Weighted and unweighted results are similar.</td>
+</tr>
+<tr>
+<td>ROC-AUC</td>
+<td style="text-align: right;">0.9515</td>
+<td style="text-align: right;">0.0024</td>
+<td>Class separation is very stable.</td>
+</tr>
+<tr>
+<td>Weighted ROC-AUC</td>
+<td style="text-align: right;">0.9512</td>
+<td style="text-align: right;">0.0023</td>
+<td>Weighted separation is equally stable.</td>
+</tr>
+<tr>
+<td>Brier score</td>
+<td style="text-align: right;">0.0329</td>
+<td style="text-align: right;">0.0007</td>
+<td>Numerically stable, but not a full calibration audit.</td>
+</tr>
+<tr>
+<td>Top-10% weighted precision</td>
+<td style="text-align: right;">47.33%</td>
+<td style="text-align: right;">0.94 pp</td>
+<td>The top decile repeatedly contains about half high-income
+prospects.</td>
+</tr>
+<tr>
+<td>Top-10% lift</td>
+<td style="text-align: right;">7.41x</td>
+<td style="text-align: right;">0.12x</td>
+<td>Top-decile lift is stable enough for campaign planning.</td>
+</tr>
+</tbody>
+</table>
+<p>The decision not to tune hyperparameters was deliberate. The project
+goal is marketing usefulness and defensible selection, not squeezing out
+a leaderboard result. The top boosting models were already nearly tied,
+and adding a large hyperparameter search across five model families
+would add complexity without changing the campaign recommendation.</p>
+<p>The Brier score should also be read carefully. With a rare target,
+low Brier scores can partly come from many near-zero predictions. For
+this use case, lift and top-band precision matter more than perfect
+probability calibration. If future users want to treat model scores as
+literal probabilities in ROI formulas, the next step should be a
+reliability diagram and calibration step.</p>
+<h3 id="final-model-performance">5.5 Final Model Performance</h3>
+<p>After selection and stability checks, the selected
+HistGradientBoosting model was evaluated once on the held-out test
+set.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 13%" />
+<col style="width: 8%" />
+<col style="width: 9%" />
+<col style="width: 8%" />
+<col style="width: 46%" />
+</colgroup>
+<thead>
+<tr>
+<th>Split</th>
+<th>Weighting</th>
+<th style="text-align: right;">PR-AUC</th>
+<th style="text-align: right;">ROC-AUC</th>
+<th style="text-align: right;">Brier</th>
+<th style="text-align: right;">Best-F1 threshold, diagnostic only</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Validation</td>
+<td>Unweighted</td>
+<td style="text-align: right;">0.6898</td>
+<td style="text-align: right;">0.9563</td>
+<td style="text-align: right;">0.0317</td>
+<td style="text-align: right;">0.3022</td>
+</tr>
+<tr>
+<td>Validation</td>
+<td>Weighted</td>
+<td style="text-align: right;">0.7016</td>
+<td style="text-align: right;">0.9576</td>
+<td style="text-align: right;">0.0325</td>
+<td style="text-align: right;">0.3412</td>
+</tr>
+<tr>
+<td>Test</td>
+<td>Unweighted</td>
+<td style="text-align: right;">0.6738</td>
+<td style="text-align: right;">0.9516</td>
+<td style="text-align: right;">0.0325</td>
+<td style="text-align: right;">0.3175</td>
+</tr>
+<tr>
+<td>Test</td>
+<td>Weighted</td>
+<td style="text-align: right;">0.6791</td>
+<td style="text-align: right;">0.9510</td>
+<td style="text-align: right;">0.0332</td>
+<td style="text-align: right;">0.3151</td>
+</tr>
+</tbody>
+</table>
+<p>The test PR-AUC is modestly lower than validation, which is expected.
+The ranking remains strong: the weighted top 20% of test records
+captures about <strong>91%</strong> of weighted high-income records.</p>
+<h3 id="classifier-pipeline-and-final-feature-set">5.6 Classifier
+Pipeline and Final Feature Set</h3>
+<p>This section is classifier-specific. <a
+href="#4-data-exploration-and-preprocessing">Section 4</a> explains the
+general data cleaning decisions; here, the focus is how those decisions
+became an executable model pipeline.</p>
+<table>
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 80%" />
+</colgroup>
+<thead>
+<tr>
+<th>Step</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Target</td>
+<td><code>over_50k = 1</code> if income is <code>50000+.</code>;
+otherwise 0.</td>
+</tr>
+<tr>
+<td>Sample weights</td>
+<td>Not used for training; used for weighted evaluation and audience
+sizing.</td>
+</tr>
+<tr>
+<td>“Not in universe”</td>
+<td>Kept as a real category.</td>
+</tr>
+<tr>
+<td>Unknown values</td>
+<td><code>?</code>, missing values, and “Do not know” are mapped to
+<code>"Unknown"</code> where appropriate.</td>
+</tr>
+<tr>
+<td>Migration artifact columns</td>
+<td>Dropped because they encode survey year rather than migration
+behavior.</td>
+</tr>
+<tr>
+<td>Capital-gain top-code</td>
+<td>Added <code>capital_gains_at_cap</code> for records at the $99,999
+reporting cap.</td>
+</tr>
+<tr>
+<td>Categorical handling</td>
+<td>One-hot for linear / random forest baselines; ordinal or native
+categorical handling for boosting models.</td>
+</tr>
+</tbody>
+</table>
+<p>After feature ablation, seven low-value or redundant columns were
+removed:</p>
+<ul>
+<li><code>country of birth father</code></li>
+<li><code>country of birth mother</code></li>
+<li><code>country of birth self</code></li>
+<li><code>detailed household and family stat</code></li>
+<li><code>region of previous residence</code></li>
+<li><code>state of previous residence</code></li>
+<li><code>year</code></li>
+</ul>
+<p>The final classifier bundle uses <strong>30 features</strong> and
+excludes the four migration artifact columns before fitting.</p>
+<h3 id="governance-notes">5.7 Governance Notes</h3>
+<p>The technical classifier includes <code>sex</code>,
+<code>race</code>, <code>hispanic origin</code>, and
+<code>citizenship</code>. A sensitivity check removed those fields and
+refit the selected model family. Validation PR-AUC fell by
+<strong>0.0168</strong>, from about 0.6898 to
+<strong>0.6730</strong>.</p>
+<p>That means the sensitive attributes carry some signal, but they are
+not the sole reason the model works. A production version should make
+the include/exclude decision explicitly:</p>
+<ul>
+<li>If the fields are allowed for the marketing use case, audit the
+final contacted audience.</li>
+<li>If the fields are not appropriate, remove them and accept the
+measured performance loss.</li>
+<li>Do not use this model for credit, insurance, employment, housing, or
+other regulated decisions without a separate compliance process.</li>
+</ul>
+<h3 id="saved-classifier-artifact">5.8 Saved Classifier Artifact</h3>
+<p>The notebook saves the reusable classifier bundle to:</p>
+<p><code>outputs/models/income_classifier_bundle.joblib</code></p>
+<p>The bundle includes the fitted model, feature list, categorical
+mappings, preprocessing configuration, threshold recommendations,
+benchmark results, and metadata.</p>
+<hr />
+<h2 id="customer-segmentation">6. Customer Segmentation</h2>
+<blockquote>
+<p><em>Detailed analysis:
+<code>notebooks/03_segmentation.ipynb</code>.</em></p>
+</blockquote>
+<p>The segmentation notebook groups adults into interpretable audiences
+using work, household, education, and financial-profile fields. Income
+is not used to create the clusters; it is measured afterward. That keeps
+segmentation useful for understanding the audience, while the classifier
+remains responsible for prioritizing who to contact first inside each
+segment.</p>
+<h3 id="what-the-segmentation-produces">6.1 What the Segmentation
+Produces</h3>
+<p>The segmentation notebook assigns adult records
+(<code>age &gt;= 18</code>) to four customer segments:</p>
+<table>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 10%" />
+<col style="width: 12%" />
+<col style="width: 60%" />
+</colgroup>
+<thead>
+<tr>
+<th>Segment</th>
+<th style="text-align: right;">Weighted size</th>
+<th style="text-align: right;">In-segment &gt;$50K</th>
+<th>Primary cluster profile</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Steady Workers</td>
+<td style="text-align: right;">56.32%</td>
+<td style="text-align: right;">11.30%</td>
+<td>Broad full-year working base with steady labor-force
+attachment.</td>
+</tr>
+<tr>
+<td>Low-Workforce Adults</td>
+<td style="text-align: right;">31.18%</td>
+<td style="text-align: right;">1.24%</td>
+<td>Lower weeks worked, lower employer count, and limited
+financial-income signals.</td>
+</tr>
+<tr>
+<td>Service &amp; Admin</td>
+<td style="text-align: right;">7.47%</td>
+<td style="text-align: right;">4.52%</td>
+<td>Service/admin occupational mix with weaker investment-income
+signals.</td>
+</tr>
+<tr>
+<td>Investor Professionals</td>
+<td style="text-align: right;">5.03%</td>
+<td style="text-align: right;">33.47%</td>
+<td>Professional profile with stronger capital-gain and dividend
+signals.</td>
+</tr>
+</tbody>
+</table>
+<p>The main recommendation is:</p>
+<blockquote>
+<p>Use <strong>Investor Professionals</strong> and the top-scored slice
+of <strong>Steady Workers</strong> as the main high-income audiences.
+Use segment names for message framing and the classifier score for reach
+control.</p>
+</blockquote>
+<figure>
+<img src="../outputs/figures/segmentation_segment_heatmap.png"
+alt="Segment numeric profile heatmap" />
+<figcaption aria-hidden="true">Segment numeric profile
+heatmap</figcaption>
+</figure>
+<p>The heatmap is the main interpretation view. Each column is a
+segment, and each row is a numeric profile variable. The color shows how
+far that segment is from the <strong>weighted adult average</strong> for
+that variable:</p>
+<ul>
+<li>Darker red means the segment is above the adult average.</li>
+<li>Darker blue means the segment is below the adult average.</li>
+<li>Near-white means the segment is close to the adult average.</li>
+</ul>
+<p>The values are standardized differences, so they should be read as
+relative profile signals rather than raw dollar amounts or raw ages. For
+example, <strong>Investor Professionals</strong> is red on capital gains
+and dividends, which supports the “financial/investor” profile.
+<strong>Low-Workforce Adults</strong> is blue on weeks worked and
+employer count, which supports the lower-workforce-attachment profile.
+<strong>Steady Workers</strong> is closer to average but stronger on
+work attachment, which is why it is useful as the broad scalable
+base.</p>
+<p>The t-SNE plot below is only a diagnostic view. It helps show that
+the clusters occupy distinct areas in the reduced feature space, and
+that high-income records concentrate in certain parts of that structure.
+It was not used to choose the model.</p>
+<figure>
+<img src="../outputs/figures/segmentation_tsne_clusters.png"
+alt="t-SNE sample colored by segment and income overlay" />
+<figcaption aria-hidden="true">t-SNE sample colored by segment and
+income overlay</figcaption>
+</figure>
+<h3 id="segment-score-recipes">6.2 Segment × Score Recipes</h3>
+<p>Segments alone are not enough. The strongest strategy is
+<strong>segment × score band</strong>:</p>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 9%" />
+<col style="width: 7%" />
+<col style="width: 15%" />
+<col style="width: 43%" />
+</colgroup>
+<thead>
+<tr>
+<th>Recipe</th>
+<th style="text-align: right;">Weighted reach</th>
+<th style="text-align: right;">% above $50K</th>
+<th style="text-align: right;">Lift vs. adult population</th>
+<th>Suggested use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Investor Professionals × top 5% score</td>
+<td style="text-align: right;">0.26% of adults</td>
+<td style="text-align: right;">99.19%</td>
+<td style="text-align: right;">11.31x</td>
+<td>Very small, very high-confidence premium audience.</td>
+</tr>
+<tr>
+<td>Investor Professionals × top 20% score</td>
+<td style="text-align: right;">1.03% of adults</td>
+<td style="text-align: right;">96.61%</td>
+<td style="text-align: right;">11.01x</td>
+<td>Still extremely high precision with broader reach inside the
+segment.</td>
+</tr>
+<tr>
+<td>Steady Workers × top 5% score</td>
+<td style="text-align: right;">2.82% of adults</td>
+<td style="text-align: right;">82.86%</td>
+<td style="text-align: right;">9.45x</td>
+<td>Best scalable premium audience.</td>
+</tr>
+<tr>
+<td>Steady Workers × top 10% score</td>
+<td style="text-align: right;">5.66% of adults</td>
+<td style="text-align: right;">66.67%</td>
+<td style="text-align: right;">7.60x</td>
+<td>Larger digital or loyalty audience with strong precision.</td>
+</tr>
+<tr>
+<td>Service &amp; Admin × top 5% score</td>
+<td style="text-align: right;">0.36% of adults</td>
+<td style="text-align: right;">55.99%</td>
+<td style="text-align: right;">6.38x</td>
+<td>Small niche pocket when the offer fits working households.</td>
+</tr>
+<tr>
+<td>Low-Workforce Adults × top 10% score</td>
+<td style="text-align: right;">3.13% of adults</td>
+<td style="text-align: right;">9.43%</td>
+<td style="text-align: right;">1.07x</td>
+<td>Not a primary premium-income audience.</td>
+</tr>
+</tbody>
+</table>
+<figure>
+<img src="../outputs/figures/segmentation_score_recipes.png"
+alt="Segment by score recipe precision" />
+<figcaption aria-hidden="true">Segment by score recipe
+precision</figcaption>
+</figure>
+<p>This split keeps the two jobs separate. The segment tells the
+marketer how to understand and message the audience. The score
+determines how deep into the segment the campaign should go.</p>
+<h3 id="segment-interpretation">6.3 Segment Interpretation</h3>
+<p><strong>Steady Workers</strong> is the largest segment and contains
+most high-income adults because it is so large. It is not a premium
+segment by itself: its high-income rate is 11.30%, above the adult
+baseline but far below the top score bands. This segment should usually
+be score-filtered. A follow-up sub-segmentation found a smaller
+professional/dividend-income pocket inside it: <strong>13.04%</strong>
+of the parent segment and <strong>33.76%</strong> above $50,000.</p>
+<p><strong>Investor Professionals</strong> is small and dense. It is
+only 5.03% of weighted adults, but it contains 19.20% of weighted
+high-income adults. Its high-income rate is 33.47% before score
+filtering. This is the clearest segment-level premium audience.</p>
+<p><strong>Service &amp; Admin</strong> is below the adult high-income
+baseline overall, but the classifier still finds useful pockets. The top
+5% score slice is <strong>55.99%</strong> above $50,000. That makes it
+useful for targeted offers, not broad premium outreach.</p>
+<p><strong>Low-Workforce Adults</strong> is large but low-income by this
+target definition. It should not be the main audience for high-income
+acquisition, though it may still matter for value, convenience, leisure,
+or household campaigns.</p>
+<h3 id="segmentation-model-details">6.4 Segmentation Model Details</h3>
+<p>The final segmentation model is <strong>K-Means with K = 4</strong>,
+fit on adults only. The adult universe contains <strong>143,531
+records</strong>, representing about <strong>253.5 million weighted
+person-records</strong>.</p>
+<p>The default feature set is compact and interpretable:</p>
+<ul>
+<li>Education</li>
+<li>Broad occupation</li>
+<li>Marital status</li>
+<li>Household role</li>
+<li>Full-time / part-time employment status</li>
+<li>Age</li>
+<li>Weeks worked</li>
+<li>Employer count</li>
+<li>Log-scaled capital gains, dividends, and wage per hour</li>
+</ul>
+<p>Sensitive attributes are excluded from the default clustering
+inputs.</p>
+<p>Numeric features are standardized, categorical features are one-hot
+encoded, and the resulting <strong>58-column sparse matrix is reduced to
+20 dimensions with TruncatedSVD</strong> before clustering. That step
+matters because K-Means relies on distance, and raw sparse one-hot
+spaces can make distances noisy. The trade-off is that clusters are
+formed in component space, so the report interprets them by profiling
+back to the original variables.</p>
+<p>Model selection compared K-Means, MiniBatchKMeans, Gaussian Mixture,
+and an Agglomerative-Ward sanity check. The table below shows the
+strongest deployable candidates:</p>
+<table>
+<colgroup>
+<col style="width: 15%" />
+<col style="width: 2%" />
+<col style="width: 25%" />
+<col style="width: 9%" />
+<col style="width: 13%" />
+<col style="width: 14%" />
+<col style="width: 19%" />
+</colgroup>
+<thead>
+<tr>
+<th>Candidate</th>
+<th style="text-align: right;">K</th>
+<th>Deployable for new records?</th>
+<th style="text-align: right;">Silhouette</th>
+<th style="text-align: right;">Davies-Bouldin</th>
+<th style="text-align: right;">Structure score</th>
+<th style="text-align: right;">Min weighted segment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K-Means</td>
+<td style="text-align: right;">4</td>
+<td>Yes</td>
+<td style="text-align: right;">0.2865</td>
+<td style="text-align: right;">1.2797</td>
+<td style="text-align: right;">0.1585</td>
+<td style="text-align: right;">5.03%</td>
+</tr>
+<tr>
+<td>K-Means</td>
+<td style="text-align: right;">3</td>
+<td>Yes</td>
+<td style="text-align: right;">0.2638</td>
+<td style="text-align: right;">1.4410</td>
+<td style="text-align: right;">0.1197</td>
+<td style="text-align: right;">7.77%</td>
+</tr>
+<tr>
+<td>K-Means</td>
+<td style="text-align: right;">6</td>
+<td>Yes</td>
+<td style="text-align: right;">0.2485</td>
+<td style="text-align: right;">1.3084</td>
+<td style="text-align: right;">0.1177</td>
+<td style="text-align: right;">5.02%</td>
+</tr>
+<tr>
+<td>MiniBatchKMeans</td>
+<td style="text-align: right;">3</td>
+<td>Yes</td>
+<td style="text-align: right;">0.2537</td>
+<td style="text-align: right;">1.3911</td>
+<td style="text-align: right;">0.1146</td>
+<td style="text-align: right;">5.05%</td>
+</tr>
+<tr>
+<td>Gaussian Mixture</td>
+<td style="text-align: right;">3</td>
+<td>Yes</td>
+<td style="text-align: right;">0.2538</td>
+<td style="text-align: right;">1.4467</td>
+<td style="text-align: right;">0.1091</td>
+<td style="text-align: right;">7.77%</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><em>Note: Higher silhouette and structure score are better; lower
+Davies-Bouldin is better. The structure score combines both metrics as
+<code>silhouette - 0.10 x Davies-Bouldin</code>. The minimum weighted
+segment requirement keeps the solution usable for campaign
+activation.</em></p>
+</blockquote>
+<p>K-Means with <strong>K = 4</strong> was selected because it had the
+best structure score among deployable candidates and still met the 5%
+minimum weighted segment-size floor. Agglomerative Ward was used only as
+a sanity check because it does not naturally assign future records
+without refitting. Income was not used to select the clustering model;
+it was measured afterward for segment interpretation.</p>
+<p>Stability checks were strong:</p>
+<ul>
+<li>Subsample-refit ARI on overlapping rows:
+<strong>0.9997</strong></li>
+<li>Sensitive-attribute inclusion check: ARI <strong>0.9884</strong>
+versus default segmentation</li>
+<li>Expanded-feature check: ARI <strong>0.9463</strong> after adding
+detailed industry, detailed occupation, and country-of-birth fields</li>
+</ul>
+<p>The expanded-feature test increased the encoded space from
+<strong>58</strong> to <strong>281</strong> columns but did not
+materially change the broad segmentation. That supports the simpler
+default feature set: it is easier to explain and preserves the main
+structure.</p>
+<h3 id="saved-segmentation-artifact">6.5 Saved Segmentation
+Artifact</h3>
+<p>The notebook saves the segmentation bundle to:</p>
+<p><code>outputs/models/segmentation_bundle.joblib</code></p>
+<p>The bundle includes the fitted clustering model, preprocessing
+pipeline, projection step, categorical mappings, segment names, segment
+profiles, segment × score recipes, stability metrics, and a helper for
+assigning new raw adult records to segments.</p>
+<hr />
+<h2 id="limitations-and-suggestions-for-this-project">7. Limitations and
+Suggestions for This Project</h2>
+<p><strong>Data must be refreshed before deployment.</strong> The data
+covers 1994-95. The broad relationships are useful for this exercise,
+but actual score thresholds, income prevalence, occupation patterns, and
+audience sizes should be retrained on current data before
+deployment.</p>
+<p><strong>Income is only a proxy.</strong> Income estimates purchasing
+power. It does not measure purchase intent, product fit, basket size,
+brand affinity, or lifetime value. If the retailer has transaction or
+campaign-response data, the next model should target those outcomes
+directly.</p>
+<p><strong>Campaign economics are still illustrative.</strong> The
+top-20% operating band is based on the $5 / $200 example. The framework
+is valid, but the final threshold should be recalculated with real
+channel cost, expected value per contacted high-income prospect, and
+budget constraints.</p>
+<p><strong>Calibration needs a separate check.</strong> The model ranks
+well. The report does not assume raw scores are perfectly calibrated
+probabilities. ROI tables use observed validation precision by score
+band. If the business wants to use scores as literal probabilities, add
+a reliability diagram and calibration step.</p>
+<p><strong>Sensitive attributes need governance.</strong> The classifier
+includes sensitive attributes in this technical version. Before
+production, the client should decide whether those fields are
+appropriate for the specific marketing use case and run a fairness audit
+on the actual audience selected for activation.</p>
+<p><strong>Campaign performance still needs live testing.</strong>
+Retraining on current data is necessary, but it is not the same as
+proving campaign impact. A small A/B test should validate score bands,
+segment messaging, and offer response before broad rollout.</p>
+<p><strong>Segment names are shorthand.</strong> Segment names summarize
+dominant patterns in the survey data. They should be treated as working
+labels, not fixed personas. Current customer data and campaign creative
+should validate the naming before launch.</p>
+<p><strong>Business inputs would make the recommendation more
+operational.</strong> The brief describes a generic retail client. In a
+real engagement, the recommendation would become sharper with a few
+business inputs. For example:</p>
+<ol type="1">
+<li>What product, service, or offer will the campaign promote?</li>
+<li>What is the expected value of a successful conversion?</li>
+<li>What is the cost per contact by channel?</li>
+<li>Is there a fixed campaign budget or target audience size?</li>
+<li>Which demographic attributes are allowed as model inputs?</li>
+<li>Will the output be used only for retail marketing, or for any
+regulated decision?</li>
+</ol>
+<p>With those answers, the score-band recommendation in the report could
+move from illustrative to operational, and the segment messaging could
+be tailored to the actual product category.</p>
+</body>
+</html>
